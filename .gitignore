@@ -1,0 +1,4 @@
+*.bak
+*.wdb
+.vscode/
+.release/

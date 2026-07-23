@@ -327,12 +327,39 @@ function Postal_BlackBook:OnChar(editbox, ...)
 				end
 			end
 			if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic or Postal.WOWCataClassic or Postal.WOWMists then
-				local presenceID, presenceName, battleTag, isBattleTagPresence, toonName, toonID, client, isOnline, lastOnline, isAFK, isDND, messageText, noteText, isRIDFriend, messageTime, canSoR = BNGetFriendInfo(i)
-				if (toonName and client == BNET_CLIENT_WOW and CanCooperateWithGameAccount(toonID)) then
+				-- Prefer the modern C_BattleNet API; fall back to the deprecated BNGetFriendInfo
+				local toonName, client, toonID
+				if C_BattleNet and C_BattleNet.GetFriendAccountInfo then
+					local accountInfo = C_BattleNet.GetFriendAccountInfo(i)
+					local gameInfo = accountInfo and accountInfo.gameAccountInfo
+					if gameInfo then
+						toonName = gameInfo.characterName
+						client = gameInfo.clientProgram
+						toonID = gameInfo.gameAccountID
+					end
+				else
+					local presenceID, presenceName, battleTag, isBattleTagPresence, tName, tID, cli = BNGetFriendInfo(i)
+					toonName, toonID, client = tName, tID, cli
+				end
+				if (toonName and client == BNET_CLIENT_WOW and (not toonID or CanCooperateWithGameAccount(toonID))) then
 					if strfind(strupper(toonName), text, 1, 1) == 1 then
 						newname = toonName
 						break
 					end
+				end
+			end
+		end
+
+		-- Check the regular (character) friends list. This was previously missing,
+		-- so names added via /friend never auto-completed on Classic/TBC.
+		if not newname then
+			local numFriends = C_FriendList.GetNumFriends()
+			for i = 1, numFriends do
+				local fi = C_FriendList.GetFriendInfoByIndex(i)
+				local fname = fi and fi.name
+				if fname and strfind(strupper(fname), text, 1, 1) == 1 then
+					newname = fname
+					break
 				end
 			end
 		end
@@ -391,7 +418,8 @@ function Postal_BlackBook:SortAndCountNumFriends()
 	wipe(sorttable)
 	local numFriends = C_FriendList.GetNumFriends()
 	for i = 1, numFriends do
-		sorttable[i] = C_FriendList.GetFriendInfoByIndex(i).name
+		local fi = C_FriendList.GetFriendInfoByIndex(i)
+		sorttable[i] = fi and fi.name or ""
 	end
 
 	-- Sort the list

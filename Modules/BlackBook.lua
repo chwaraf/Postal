@@ -63,6 +63,11 @@ function Postal_BlackBook:OnEnable()
 		self:RawHookScript(SendMailNameEditBox, "OnChar")
 	end
 	self:HookScript(SendMailNameEditBox, "OnEditFocusGained")
+	-- Detect when the user actively navigates Blizzard's autocomplete popup (Tab /
+	-- Shift-Tab / arrow keys). Once they do, we stop forcing our own inline match to
+	-- the top so their popup selection (e.g. a friend) sticks and Enter picks it.
+	self:HookScript(SendMailNameEditBox, "OnTabPressed", "OnPopupNavigate")
+	self:HookScript(SendMailNameEditBox, "OnArrowPressed", "OnPopupNavigate")
 	self:SecureHook("AutoComplete_Update")
 	if Postal.WOWBCClassic then
 		self:RegisterEvent("MAIL_SHOW")
@@ -238,8 +243,17 @@ function Postal_BlackBook:OnEditFocusGained(editbox, ...)
 end
 
 function Postal_BlackBook:AutoComplete_Update(parent, text, cursorPosition)
-	if parent == SendMailNameEditBox and Postal.db.profile.BlackBook.DisableBlizzardAutoComplete then
+	if parent ~= SendMailNameEditBox then return end
+	-- User globally disabled the popup: hide it and stop.
+	if Postal.db.profile.BlackBook.DisableBlizzardAutoComplete then
 		AutoComplete_HideIfAttachedTo(parent)
+		return
+	end
+	-- Blizzard rebuilds the popup a frame after OnChar and re-highlights its first
+	-- entry. If Postal made an inline match and the user hasn't started navigating the
+	-- popup, clear that highlight so Enter sends to our inline alt (Tab still works).
+	if Postal_BlackBook.hasInlineMatch and not Postal_BlackBook.userNavigatingPopup then
+		Postal_BlackBook:ResetPopupSelection(parent)
 	end
 end
 
@@ -257,13 +271,14 @@ function Postal_BlackBook:OnChar(editbox, ...)
 	local player = UnitName("player")
 	local newname
 
-	-- Check all alt list
+	-- Check all alt list (any of your characters, any realm/faction).
+	-- Exclude only THIS character on THIS realm (you can't mail yourself).
 	if db.AutoCompleteAllAlts then
 		local nosptext = text:gsub("%s*","") -- ignore spaces in matching fully-qualified names
 		local db = Postal.db.global.BlackBook.alts
 		for i = 1, #db do
 			local p, r, f = strsplit("|", db[i])
-			if p ~= player and r ~= realm then
+			if p ~= player or r ~= realm then
 				if strfind(strupper(p.."-"..r):gsub("%s*",""), nosptext, 1, 1) == 1 then
 					newname = p.."-"..r
 					break
@@ -369,22 +384,64 @@ function Postal_BlackBook:OnChar(editbox, ...)
 	if not newname and db.AutoCompleteGuild and IsInGuild() then
 		local numMembers, numOnline = GetNumGuildMembers(true)
 		for i = 1, numMembers do
-			local name, rank, rankIndex, level, class, zone, note, officernote, online, status, classFileName, achievementPoints, achievementRank, isMobile, canSoR = GetGuildRosterInfo(i)
-			if strfind(strupper(name), text, 1, 1) == 1 then
+			local name = GetGuildRosterInfo(i)
+			if name and strfind(strupper(name), text, 1, 1) == 1 then
 				newname = name
 				break
 			end
 		end
 	end
 
+	-- A fresh keystroke means the user is typing again, not navigating the popup.
+	-- Reset the navigation flag so Postal resumes prioritizing its own inline match.
+	Postal_BlackBook.userNavigatingPopup = nil
+
 	-- Call the original Blizzard function to autocomplete and for its popup
 	self.hooks[SendMailNameEditBox].OnChar(editbox, ...)
+
+	-- Remember whether Postal produced its own inline completion this keystroke, so the
+	-- AutoComplete_Update hook can keep neutralizing the popup's default selection.
+	Postal_BlackBook.hasInlineMatch = newname ~= nil
 
 	-- Set our match if we found one (overriding Blizzard's match if there's one)
 	if newname then
 		editbox:SetText(newname)
 		editbox:HighlightText(textlen, -1)
 		editbox:SetCursorPosition(textlen)
+
+		-- Keep Blizzard's popup VISIBLE (so Tab / arrows can scroll into it), but clear
+		-- its active selection. Blizzard's OnEnterPressed only steals the input when
+		-- selectedIndex ~= 0; with it at 0, pressing Enter sends to OUR inline alt,
+		-- while pressing Tab/arrow selects a popup entry (e.g. a friend) instead.
+		Postal_BlackBook:ResetPopupSelection(editbox)
+	end
+end
+
+-- Force Blizzard's autocomplete popup to have no active selection (selectedIndex 0),
+-- so Enter uses Postal's inline match rather than a highlighted popup entry.
+function Postal_BlackBook:ResetPopupSelection(editbox)
+	if Postal.db.profile.BlackBook.DisableBlizzardAutoComplete then
+		-- User opted to suppress the popup entirely.
+		if AutoComplete_HideIfAttachedTo then AutoComplete_HideIfAttachedTo(editbox) end
+		return
+	end
+	if AutoCompleteBox and AutoCompleteBox:IsShown()
+		and (AutoCompleteBox.parent == editbox or AutoCompleteBox.attachedEditBox == editbox) then
+		if AutoComplete_SetSelectedIndex then
+			AutoComplete_SetSelectedIndex(AutoCompleteBox, 0)
+		else
+			AutoCompleteBox.selectedIndex = 0
+		end
+	end
+end
+
+-- Called when the user presses Tab / Shift-Tab / an arrow key in the recipient box.
+-- Blizzard's handlers move the popup selection; we just note that the user is now
+-- driving the popup so we stop overriding their choice back to our inline match.
+function Postal_BlackBook:OnPopupNavigate(editbox, ...)
+	if AutoCompleteBox and AutoCompleteBox:IsShown()
+		and (AutoCompleteBox.parent == editbox or AutoCompleteBox.attachedEditBox == editbox) then
+		Postal_BlackBook.userNavigatingPopup = true
 	end
 end
 
@@ -691,8 +748,8 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 			local numFriends = GetNumGuildMembers(true)
 			for i = 1, numFriends do
 				local name, rank, rankIndex, level, class, zone, note, officernote, online, status, classFileName, achievementPoints, achievementRank, isMobile, canSoR = GetGuildRosterInfo(i)
-				local c = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[classFileName] or RAID_CLASS_COLORS[classFileName]
-				sorttable[i] = format("%s |cffffd200(%s)|r |cff%.2x%.2x%.2x(%d %s)|r", name, rank, c.r*255, c.g*255, c.b*255, level, class)
+				local c = classFileName and ((CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[classFileName]) or RAID_CLASS_COLORS[classFileName]) or NORMAL_FONT_COLOR
+				sorttable[i] = format("%s |cffffd200(%s)|r |cff%.2x%.2x%.2x(%d %s)|r", name or "", rank or "", c.r*255, c.g*255, c.b*255, level or 0, class or "")
 			end
 			for i = #sorttable, numFriends+1, -1 do
 				sorttable[i] = nil

@@ -15,9 +15,9 @@ local PostalForwardExpectedSendCount = nil
 -- delays were intentionally conservative.  These shorter delays keep it safe
 -- while making 12-attachment forwards much faster.
 local POSTAL_FORWARD_INITIAL_DELAY = 0.03
-local POSTAL_FORWARD_RETRY_DELAY = 0.02
+local POSTAL_FORWARD_RETRY_DELAY = 0.01
 local POSTAL_FORWARD_NEXT_DELAY = 0.01
-local POSTAL_FORWARD_ATTACH_FALLBACK_DELAY = 0.12
+local POSTAL_FORWARD_ATTACH_FALLBACK_DELAY = 0.01
 
 local function Postal_Forward_GetForwardButton()
 	return OpenMailForwardButton or PostalForwardButton

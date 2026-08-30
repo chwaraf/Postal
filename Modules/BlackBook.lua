@@ -17,6 +17,12 @@ local ignoresortlocale = {
 }
 local enableAltsMenu = true
 local enableAllAltsMenu = true
+-- Whether this character has already been written to the alt list this session.
+-- Tracked with a flag instead of removing Postal_BlackBook.AddAlt, because that
+-- method is registered as an event handler in OnEnable and AceEvent refuses to
+-- register a method that does not exist on the module (which would break the
+-- module every time it is re-enabled from the menu).
+local altAdded = false
 local Postal_BlackBook_Autocomplete_Flags = {
 	include = AUTOCOMPLETE_FLAG_ALL,
 	exclude = AUTOCOMPLETE_FLAG_BNET,
@@ -114,7 +120,7 @@ function Postal_BlackBook:MAIL_SHOW()
 		Postal_BlackBook:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", "Reset")
 	end
 	self:RegisterEvent("PLAYER_LEAVING_WORLD", "Reset")
-	if self.AddAlt then self:AddAlt() end
+	self:AddAlt()
 end
 
 function Postal_BlackBook:MAIL_CLOSED()
@@ -133,6 +139,7 @@ end
 -- PLAYER_ENTERING_WORLD and because Postal might be LoD due to AddOnLoader
 -- and PLAYER_ENTERING_WORLD won't fire in that scenerio.
 function Postal_BlackBook:AddAlt()
+	if altAdded then return end
 	local realm = GetRealmName()
 	local faction = UnitFactionGroup("player")
 	local player = UnitName("player")
@@ -158,7 +165,7 @@ function Postal_BlackBook:AddAlt()
 	tinsert(db, namestring)
 	table.sort(db)
 	self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-	self.AddAlt = nil -- Kill ourselves so we only run it once
+	altAdded = true -- Only record this character once per session
 end
 
 function Postal_BlackBook.DeleteAlt(dropdownbutton, arg1, arg2, checked)

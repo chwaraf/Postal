@@ -11,6 +11,7 @@ local _G = getfenv(0)
 -- Guards for hook state
 Postal_Express._bagHooked = false
 Postal_Express._handleModifiedHooked = false
+Postal_Express._tooltipDataHooked = false
 
 -- Safe container API helpers (works on all client versions)
 local function GetBagItemID(bag, slot)
@@ -63,15 +64,38 @@ function Postal_Express:PLAYER_INTERACTION_MANAGER_FRAME_HIDE(eventName, ...)
 	if paneType == Enum.PlayerInteractionType.MailInfo then Postal_Express:MAIL_CLOSED() end
 end
 
+local function CanHookTooltipScript(tooltip, scriptName)
+	if not (tooltip and tooltip.HasScript) then return false end
+	local ok, hasScript = pcall(tooltip.HasScript, tooltip, scriptName)
+	return ok and hasScript
+end
+
+function Postal_Express:RegisterTooltipHook()
+	if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall
+		and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Item
+	then
+		if not self._tooltipDataHooked then
+			TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip)
+				if Postal_Express:IsEnabled() then Postal_Express:OnTooltipSetItem(tooltip) end
+			end)
+			self._tooltipDataHooked = true
+		end
+	elseif GameTooltip and CanHookTooltipScript(GameTooltip, "OnTooltipSetItem")
+		and not self:IsHooked(GameTooltip, "OnTooltipSetItem")
+	then
+		self:HookScript(GameTooltip, "OnTooltipSetItem")
+	end
+end
+
 function Postal_Express:MAIL_SHOW()
 	if not (Postal.db.profile.Express.EnableAltClick or Postal.db.profile.Express.BulkSend) then
 		return
 	end
 
-	-- Tooltip hook
-	if not self:IsHooked(GameTooltip, "OnTooltipSetItem") then
-		self:HookScript(GameTooltip, "OnTooltipSetItem")
-	end
+	-- Tooltip hook. Modern clients, including WoW Forever, no longer expose
+	-- OnTooltipSetItem as a hookable GameTooltip script, so use TooltipDataProcessor
+	-- when available and only fall back to the old script hook when it exists.
+	self:RegisterTooltipHook()
 
 	-- Old container hook (Classic-style frames)
 	if type(ContainerFrameItemButton_OnModifiedClick) == "function" and not self._bagHooked then
@@ -176,11 +200,14 @@ function Postal_Express:InboxFrame_OnClick(button, index)
 end
 
 function Postal_Express:OnTooltipSetItem(tooltip, ...)
-	local recipient = SendMailNameEditBox:GetText()
-	if Postal.db.profile.Express.AutoSend and recipient ~= "" and SendMailFrame:IsVisible() and not CursorHasItem() then
+	local db = Postal.db and Postal.db.profile and Postal.db.profile.Express
+	if not db or not tooltip or not SendMailFrame or not SendMailFrame:IsVisible() or CursorHasItem() then return end
+
+	local recipient = SendMailNameEditBox and SendMailNameEditBox:GetText() or ""
+	if db.EnableAltClick and db.AutoSend and recipient ~= "" then
 		tooltip:AddLine(string.format(L["|cffeda55fAlt-Click|r to send this item to %s."], recipient))
 	end
-	if Postal.db.profile.Express.BulkSend and SendMailFrame:IsVisible() and not CursorHasItem() then
+	if db.BulkSend then
 		tooltip:AddLine(L["|cffeda55fControl-Click|r to attach similar items."])
 	end
 end
@@ -328,15 +355,15 @@ function Postal_Express.SetEnableAltClick(dropdownbutton, arg1, arg2, checked)
 	local self = Postal_Express
 	Postal.db.profile.Express.EnableAltClick = checked
 	if checked then
-		if MailFrame:IsVisible() and not self:IsHooked(GameTooltip, "OnTooltipSetItem") then
-			self:HookScript(GameTooltip, "OnTooltipSetItem")
+		if MailFrame:IsVisible() then
+			self:RegisterTooltipHook()
 			if type(ContainerFrameItemButton_OnModifiedClick) == "function" and not self._bagHooked then
 				self:RawHook("ContainerFrameItemButton_OnModifiedClick", true)
 				self._bagHooked = true
 			end
 		end
 	else
-		if self:IsHooked(GameTooltip, "OnTooltipSetItem") then
+		if not Postal.db.profile.Express.BulkSend and self:IsHooked(GameTooltip, "OnTooltipSetItem") then
 			self:Unhook(GameTooltip, "OnTooltipSetItem")
 		end
 		if self._bagHooked and self:IsHooked("ContainerFrameItemButton_OnModifiedClick") then

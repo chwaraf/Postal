@@ -1,6 +1,6 @@
-# Postal — TBC Anniversary
+# Postal — TBC Anniversary + WoW Forever
 
-**Postal** is a mailbox enhancement addon for **World of Warcraft Classic: The Burning Crusade Anniversary**. It adds convenient tools for opening and returning selected mail, collecting attachments and gold, sending items quickly, managing recipient names, forwarding mail, and filtering mailbox actions.
+**Postal** is a mailbox enhancement addon for **World of Warcraft Classic: The Burning Crusade Anniversary** and **World of Warcraft: Forever**. It adds convenient tools for opening and returning selected mail, collecting attachments and gold, sending items quickly, managing recipient names, forwarding mail, and filtering mailbox actions.
 
 This package is installed as `Interface/AddOns/Postal`.
 
@@ -19,6 +19,10 @@ Postal includes the following mailbox modules:
 - **DoNotWant**, **TradeBlock**, and **Wire** — further filtering and mail-handling options.
 
 ## Custom changes
+
+### WoW Forever support
+
+A Forever/Camelot addon manifest, `Postal_Camelot.toc`, is included with `## Interface: 16001`. Postal also detects the 1.60.x Forever client at runtime and uses the modern mailbox/container API paths while keeping Forever-specific QuickAttach categories focused on old-world trade goods.
 
 ### Compact Select actions
 
@@ -54,9 +58,10 @@ The Express module’s item matching order was adjusted. It now prioritizes an e
 
 1. Exit World of Warcraft completely.
 2. Extract `Postal.zip`.
-3. Copy the extracted `Postal` folder to your TBC Anniversary AddOns directory:
+3. Copy the extracted `Postal` folder to the appropriate AddOns directory:
    ```text
    World of Warcraft/_anniversary_/Interface/AddOns/Postal/
+   World of Warcraft/_classic_beta_/Interface/AddOns/Postal/   # WoW Forever beta
    ```
 4. Start the game and make sure **Postal** is enabled in the AddOns list at character selection.
 5. Open a mailbox to use and configure the addon.

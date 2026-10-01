@@ -36,6 +36,17 @@ function Postal_CarbonCopy:OpenMail_Update()
 	end
 end
 
+local function Postal_CarbonCopy_GetCopyIcon()
+	if C_Spell and C_Spell.GetSpellTexture then
+		return C_Spell.GetSpellTexture(586) or 135994 -- Fade
+	elseif GetSpellTexture then
+		return GetSpellTexture(586) or 135994
+	elseif GetSpellInfo then
+		return select(3, GetSpellInfo(586)) or 135994
+	end
+	return 135994
+end
+
 function Postal_CarbonCopy:CopyMail()
 	-- Build the string
 	local _, _, sender, subject = GetInboxHeaderInfo(InboxFrame.openMailID)
@@ -88,11 +99,7 @@ function Postal_CarbonCopy:CreateButton()
 	button:SetPoint("TOPRIGHT", OpenMailScrollFrame, "TOPRIGHT", 0, 0)
 	button:SetHeight(10)
 	button:SetWidth(10)
-	if select(4, GetBuildInfo()) >= 110000 then
-		button:SetNormalTexture(135994) -- Fade
-	else
-		button:SetNormalTexture(select(3, GetSpellInfo(586)))
-	end
+	button:SetNormalTexture(Postal_CarbonCopy_GetCopyIcon())
 	button:SetHighlightTexture([[Interface\Buttons\ButtonHilight-Square]])
 	button:SetScript("OnClick", function()
 		Postal_CarbonCopy:CopyMail()

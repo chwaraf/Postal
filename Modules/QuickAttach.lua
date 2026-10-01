@@ -137,7 +137,21 @@ function Postal_QuickAttach:OnEnable()
 			table.insert(QAButtons, {"Postal_QuickAttachButton14", 237050, 7, 14, L["Item Enchantment"]})
 			table.insert(QAButtons, {"Postal_QuickAttachButton15", "Interface/Icons/Ability_Ensnare", 7, -1, L["Trade Goods"]})
 		end
-		if Postal.WOWRetail == true then
+		if Postal.WOWForever == true then
+			-- Forever uses the mainline addon API with old-world content; keep the
+			-- useful vanilla-era trade categories and avoid deprecated spell globals.
+			table.insert(QAButtons, {"Postal_QuickAttachButton1", 4620681, 7, 5, L["Cloth"]})
+			table.insert(QAButtons, {"Postal_QuickAttachButton2", 4620678, 7, 6, L["Leather"]})
+			table.insert(QAButtons, {"Postal_QuickAttachButton3", 4625105, 7, 7, L["Metal & Stone"]})
+			table.insert(QAButtons, {"Postal_QuickAttachButton4", 4620671, 7, 8, L["Cooking"]})
+			table.insert(QAButtons, {"Postal_QuickAttachButton5", 133939, 7, 9, L["Herb"]})
+			table.insert(QAButtons, {"Postal_QuickAttachButton6", 4620672, 7, 12, L["Enchanting"]})
+			table.insert(QAButtons, {"Postal_QuickAttachButton7", "Interface/Icons/INV_Gizmo_FelIronCasing", 7, 1, L["Parts"]})
+			table.insert(QAButtons, {"Postal_QuickAttachButton8", "Interface/Icons/INV_Elemental_Primal_Air", 7, 10, L["Elemental"]})
+			table.insert(QAButtons, {"Postal_QuickAttachButton9", "Interface/Icons/INV_Misc_Rune_09", 7, 11, L["Other"]})
+			table.insert(QAButtons, {"Postal_QuickAttachButton10", "Interface/Icons/Ability_Ensnare", 7, -1, L["Trade Goods"]})
+		end
+		if Postal.WOWRetail == true and Postal.WOWForever ~= true then
 --			table.insert(QAButtons, {"Postal_QuickAttachButton1", GetSpellTexture(3908), 7, 5, L["Cloth"]})
 --			table.insert(QAButtons, {"Postal_QuickAttachButton2", GetSpellTexture(2108), 7, 6, L["Leather"]})
 --			table.insert(QAButtons, {"Postal_QuickAttachButton3", GetSpellTexture(2656), 7, 7, L["Metal & Stone"]})
@@ -200,7 +214,7 @@ function Postal_QuickAttachLeftButtonClick(classID, subclassID)
 		SendMailNameEditBox:HighlightText()
 	end
 	local bagIDmax = NUM_BAG_FRAMES
-	if Postal.WOWRetail then
+	if Postal.WOWRetail and NUM_REAGENTBAG_FRAMES then
 		bagIDmax = bagIDmax + NUM_REAGENTBAG_FRAMES
 	end
 	for bagID = 0, bagIDmax, 1 do

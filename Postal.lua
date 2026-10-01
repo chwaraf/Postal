@@ -79,6 +79,7 @@ Postal.WOWBCClassic = false
 Postal.WOWWotLKClassic = false
 Postal.WOWCataClassic = false
 Postal.WOWMists = false
+Postal.WOWForever = false
 Postal.WOWRetail = false
 
 -- Use a common frame and setup some common functions for the Postal dropdown menus
@@ -122,19 +123,26 @@ function Postal:OnInitialize()
 
 	--print("Postal is Active and Running");
 
-	-- Detect which release of WOW is running and set appropriate flags
+	-- Detect which release of WOW is running and set appropriate flags.
+	-- WoW Forever/Camelot currently reports the mainline project ID but a
+	-- 1.60.x interface number, so detect it by interface and still use the
+	-- mainline API paths.
+	local interfaceVersion = tonumber(select(4, GetBuildInfo()))
 	if _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CLASSIC then Postal.WOWClassic = true end
 	if _G.WOW_PROJECT_ID == _G.WOW_PROJECT_BURNING_CRUSADE_CLASSIC then Postal.WOWBCClassic = true end
 	if _G.WOW_PROJECT_ID == _G.WOW_PROJECT_WRATH_CLASSIC then Postal.WOWWotLKClassic = true end
 	if _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CATACLYSM_CLASSIC then Postal.WOWCataClassic = true end
 	if _G.WOW_PROJECT_ID == _G.WOW_PROJECT_MISTS_CLASSIC then Postal.WOWMists = true end
+	if interfaceVersion and interfaceVersion >= 16000 and interfaceVersion < 17000 then Postal.WOWForever = true end
 	if _G.WOW_PROJECT_ID == _G.WOW_PROJECT_MAINLINE then Postal.WOWRetail = true end
 	if _G.WOW_PROJECT_ID == _G.LE_EXPANSION_11_0 then Postal.WOWRetail = true end
+	if Postal.WOWForever then Postal.WOWRetail = true end
 --	if Postal.WOWClassic then DEFAULT_CHAT_FRAME:AddMessage("Postal WOW Classic", 0.0, 0.69, 0.94) end
 --	if Postal.WOWBCClassic then DEFAULT_CHAT_FRAME:AddMessage("Postal WOW BC Classic", 0.0, 0.69, 0.94) end
 --	if Postal.WOWWotLKClassic then DEFAULT_CHAT_FRAME:AddMessage("Postal WOW WotLK Classic", 0.0, 0.69, 0.94) end
 --	if Postal.WOWCataClassic then DEFAULT_CHAT_FRAME:AddMessage("Postal WOW Cataclysm Classic", 0.0, 0.69, 0.94) end
 --	if Postal.WOWMists then DEFAULT_CHAT_FRAME:AddMessage("Postal WOW Mists Classic", 0.0, 0.69, 0.94) end
+--	if Postal.WOWForever then DEFAULT_CHAT_FRAME:AddMessage("Postal WOW Forever", 0.0, 0.69, 0.94) end
 --	if Postal.WOWRetail then DEFAULT_CHAT_FRAME:AddMessage("Postal WOW Retail", 0.0, 0.69, 0.94) end
 --	if Postal.WOWRetail then DEFAULT_CHAT_FRAME:AddMessage("LE_EXPANSION_11_0", 0.0, 0.69, 0.94) end
 	-- Version number

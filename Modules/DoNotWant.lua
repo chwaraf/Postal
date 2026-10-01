@@ -1,5 +1,5 @@
 local Postal = LibStub("AceAddon-3.0"):GetAddon("Postal")
-local Postal_DoNotWant = Postal:NewModule("DoNotWant", "AceHook-3.0")
+local Postal_DoNotWant = Postal:NewModule("DoNotWant", "AceHook-3.0", "AceEvent-3.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("Postal")
 Postal_DoNotWant.description = L["Shows a clickable visual icon as to whether a mail will be returned or deleted on expiry."]
 
@@ -68,6 +68,16 @@ function Postal_DoNotWant.Click(self, button, down)
 	--HideUIPanel(OpenMailFrame)
 end
 
+function Postal_DoNotWant:ScheduleInboxUpdate()
+	if C_Timer then
+		C_Timer.After(0, function()
+			if Postal_DoNotWant:IsEnabled() then Postal_DoNotWant:InboxFrame_Update() end
+		end)
+	else
+		self:InboxFrame_Update()
+	end
+end
+
 function Postal_DoNotWant:OnEnable()
 	-- Create the icons
 	for i = 1, 7 do
@@ -89,30 +99,48 @@ function Postal_DoNotWant:OnEnable()
 		b.returnicon:Show()
 	end
 
-	self:RawHook("InboxFrame_Update", true)
+	if type(InboxFrame_Update) == "function" then
+		self:RawHook("InboxFrame_Update", true)
+	else
+		self._usingInboxFrameUpdateFallback = true
+		self:RegisterEvent("MAIL_INBOX_UPDATE", "ScheduleInboxUpdate")
+		if InboxFrame then self:HookScript(InboxFrame, "OnShow", "ScheduleInboxUpdate") end
+		if InboxPrevPageButton then self:HookScript(InboxPrevPageButton, "OnClick", "ScheduleInboxUpdate") end
+		if InboxNextPageButton then self:HookScript(InboxNextPageButton, "OnClick", "ScheduleInboxUpdate") end
+	end
+	self:ScheduleInboxUpdate()
 end
 
 function Postal_DoNotWant:OnDisable()
-	if self:IsHooked("InboxFrame_Update") then
+	self._usingInboxFrameUpdateFallback = nil
+	self:UnregisterEvent("MAIL_INBOX_UPDATE")
+	if type(InboxFrame_Update) == "function" and self:IsHooked("InboxFrame_Update") then
 		self:Unhook("InboxFrame_Update")
 	end
 	for i = 1, 7 do
-		_G["MailItem"..i.."ExpireTime"].returnicon:Hide()
+		local expireTime = _G["MailItem"..i.."ExpireTime"]
+		if expireTime and expireTime.returnicon then expireTime.returnicon:Hide() end
 	end
 end
 
 function Postal_DoNotWant:InboxFrame_Update()
-	self.hooks["InboxFrame_Update"]()
+	if self.hooks and self.hooks["InboxFrame_Update"] then
+		self.hooks["InboxFrame_Update"]()
+	end
+	local pageNum = (InboxFrame and InboxFrame.pageNum) or 1
 	for i = 1, 7 do
-		local index = i + (InboxFrame.pageNum-1)*7
-		local b = _G["MailItem"..i.."ExpireTime"].returnicon
-		if index > GetInboxNumItems() then
-			b:Hide()
-		else
-			local f = InboxItemCanDelete(index)
-			b.texture:SetTexture(f and "Interface\\RaidFrame\\ReadyCheck-NotReady" or "Interface\\ChatFrame\\ChatFrameExpandArrow")
-			b.tooltip = f and DELETE or MAIL_RETURN
-			b:Show()
+		local index = i + (pageNum - 1)*7
+		local expireTime = _G["MailItem"..i.."ExpireTime"]
+		local b = expireTime and expireTime.returnicon
+		if b then
+			if index > GetInboxNumItems() then
+				b:Hide()
+			else
+				local f = InboxItemCanDelete(index)
+				b.texture:SetTexture(f and "Interface\\RaidFrame\\ReadyCheck-NotReady" or "Interface\\ChatFrame\\ChatFrameExpandArrow")
+				b.tooltip = f and DELETE or MAIL_RETURN
+				b:Show()
+			end
 		end
 	end
 end

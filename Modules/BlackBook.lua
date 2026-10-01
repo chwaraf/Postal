@@ -63,8 +63,12 @@ function Postal_BlackBook:OnEnable()
 	local db = Postal.db.profile.BlackBook
 
 	SendMailNameEditBox:SetHistoryLines(15)
-	self:RawHook("SendMailFrame_Reset", true)
-	self:RawHook("MailFrameTab_OnClick", true)
+	if type(SendMailFrame_Reset) == "function" then
+		self:RawHook("SendMailFrame_Reset", true)
+	end
+	if type(MailFrameTab_OnClick) == "function" then
+		self:RawHook("MailFrameTab_OnClick", true)
+	end
 	if db.UseAutoComplete then
 		self:RawHookScript(SendMailNameEditBox, "OnChar")
 	end
@@ -74,7 +78,9 @@ function Postal_BlackBook:OnEnable()
 	-- the top so their popup selection (e.g. a friend) sticks and Enter picks it.
 	self:HookScript(SendMailNameEditBox, "OnTabPressed", "OnPopupNavigate")
 	self:HookScript(SendMailNameEditBox, "OnArrowPressed", "OnPopupNavigate")
-	self:SecureHook("AutoComplete_Update")
+	if type(AutoComplete_Update) == "function" then
+		self:SecureHook("AutoComplete_Update")
+	end
 	if Postal.WOWBCClassic then
 		self:RegisterEvent("MAIL_SHOW")
 	else

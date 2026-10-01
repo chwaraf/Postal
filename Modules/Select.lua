@@ -57,7 +57,7 @@ local function updateMailCounts()
 end
 
 local function printTooMuchMail()
-	InboxTooMuchMail.Show = updateMailCounts	-- only print once, rest of the time: update
+	if InboxTooMuchMail then InboxTooMuchMail.Show = updateMailCounts end	-- only print once, rest of the time: update
 	updateMailCounts()
 
 	local cur,tot = GetInboxNumItems()
@@ -81,6 +81,16 @@ end
 function Postal_Select:PLAYER_INTERACTION_MANAGER_FRAME_HIDE(eventName, ...)
 	local paneType = ...
 	if paneType ==  Enum.PlayerInteractionType.MailInfo then Postal_Select:MAIL_CLOSED() end
+end
+
+function Postal_Select:ScheduleInboxUpdate()
+	if C_Timer then
+		C_Timer.After(0, function()
+			if Postal_Select:IsEnabled() then Postal_Select:InboxFrame_Update() end
+		end)
+	else
+		self:InboxFrame_Update()
+	end
 end
 
 function Postal_Select:OnEnable()
@@ -132,7 +142,14 @@ function Postal_Select:OnEnable()
 		end
 	end
 
-	self:RawHook("InboxFrame_Update", true)
+	if type(InboxFrame_Update) == "function" then
+		self:RawHook("InboxFrame_Update", true)
+	else
+		self._usingInboxFrameUpdateFallback = true
+		if InboxFrame then self:HookScript(InboxFrame, "OnShow", "ScheduleInboxUpdate") end
+		if InboxPrevPageButton then self:HookScript(InboxPrevPageButton, "OnClick", "ScheduleInboxUpdate") end
+		if InboxNextPageButton then self:HookScript(InboxNextPageButton, "OnClick", "ScheduleInboxUpdate") end
+	end
 	if Postal.WOWBCClassic then
 		self:RegisterEvent("MAIL_SHOW")
 	else
@@ -141,8 +158,10 @@ function Postal_Select:OnEnable()
 
 	-- Don't show that silly "Not all of your mail could be delivered. Please delete some
 	-- mail to make room." message under our Open and Return buttons. Print it to chat instead.
-	InboxTooMuchMail.Show = printTooMuchMail
-	InboxTooMuchMail:Hide()
+	if InboxTooMuchMail then
+		InboxTooMuchMail.Show = printTooMuchMail
+		InboxTooMuchMail:Hide()
+	end
 
 	-- For enabling after a disable
 	openButton:Show()
@@ -150,11 +169,13 @@ function Postal_Select:OnEnable()
 	for i = 1, 7 do
 		_G["PostalInboxCB"..i]:Show()
 	end
+	self:ScheduleInboxUpdate()
 end
 
 function Postal_Select:OnDisable()
 	self:Reset()
-	if self:IsHooked("InboxFrame_Update") then
+	self._usingInboxFrameUpdateFallback = nil
+	if type(InboxFrame_Update) == "function" and self:IsHooked("InboxFrame_Update") then
 		self:Unhook("InboxFrame_Update")
 	end
 	openButton:Hide()
@@ -165,7 +186,7 @@ function Postal_Select:OnDisable()
 		_G["MailItem"..i.."ExpireTime"]:SetPoint("TOPRIGHT", "MailItem"..i, "TOPRIGHT", -4, -4)
 		_G["MailItem"..i]:SetWidth(305)
 	end
-	InboxTooMuchMail.Show = nil
+	if InboxTooMuchMail then InboxTooMuchMail.Show = nil end
 end
 
 function Postal_Select:MAIL_SHOW()
@@ -263,7 +284,7 @@ function Postal_Select:HandleSelect(mode)
 
 	--protect the user from changing anything while were in process
 	Postal:DisableInbox(1)
-	if self:IsHooked("InboxFrame_Update") then
+	if type(InboxFrame_Update) == "function" and self:IsHooked("InboxFrame_Update") then
 		self:Unhook("InboxFrame_Update")
 	end
 
@@ -473,7 +494,9 @@ function Postal_Select:ProcessNext()
 end
 
 function Postal_Select:InboxFrame_Update()
-	self.hooks["InboxFrame_Update"]()
+	if self.hooks and self.hooks["InboxFrame_Update"] then
+		self.hooks["InboxFrame_Update"]()
+	end
 	for i = 1, 7 do
 		local index = i + (InboxFrame.pageNum-1)*7
 		local CB = _G["PostalInboxCB"..i]
@@ -537,11 +560,13 @@ function Postal_Select:MAIL_INBOX_UPDATE()
 
 	if currentMode == 2 then
 		updateFrame:Show()
+	elseif self._usingInboxFrameUpdateFallback then
+		self:ScheduleInboxUpdate()
 	end
 end
 
 function Postal_Select:Reset(event, ...)
-	if not self:IsHooked("InboxFrame_Update") then self:RawHook("InboxFrame_Update", true) end
+	if type(InboxFrame_Update) == "function" and not self:IsHooked("InboxFrame_Update") then self:RawHook("InboxFrame_Update", true) end
 
 	updateFrame:Hide()
 	self:UnregisterEvent("UI_ERROR_MESSAGE")
@@ -566,7 +591,7 @@ function Postal_Select:Reset(event, ...)
 		self:UnregisterEvent("PLAYER_LEAVING_WORLD")
 		self:UnregisterEvent("MAIL_INBOX_UPDATE")
 	end
-	InboxTooMuchMail.Show = printTooMuchMail
+	if InboxTooMuchMail then InboxTooMuchMail.Show = printTooMuchMail end
 end
 
 function Postal_Select:UI_ERROR_MESSAGE(event, error_message)

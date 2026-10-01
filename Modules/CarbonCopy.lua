@@ -1,38 +1,55 @@
 local Postal = LibStub("AceAddon-3.0"):GetAddon("Postal")
-local Postal_CarbonCopy = Postal:NewModule("CarbonCopy", "AceHook-3.0")
+local Postal_CarbonCopy = Postal:NewModule("CarbonCopy", "AceHook-3.0", "AceEvent-3.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("Postal")
 Postal_CarbonCopy.description = L["Allows you to copy the contents of a mail."]
 
 -- luacheck: globals InboxFrame OpenMailScrollFrame
 
 function Postal_CarbonCopy:OnEnable()
-	self:Hook("OpenMail_Update", true)
-	if OpenMailScrollFrame:IsVisible() then
-		self:OpenMail_Update()
+	if type(OpenMail_Update) == "function" then
+		self:Hook("OpenMail_Update", true)
 	end
+	if OpenMailFrame then
+		self:HookScript(OpenMailFrame, "OnShow", "ScheduleOpenMailUpdate")
+		self:HookScript(OpenMailFrame, "OnHide", "HideButton")
+	end
+	self:RegisterEvent("MAIL_INBOX_UPDATE", "ScheduleOpenMailUpdate")
+	self:ScheduleOpenMailUpdate()
 end
 
 -- Disabling modules unregisters all events/hook automatically
 function Postal_CarbonCopy:OnDisable()
-	if self.button then
-		self.button:Hide()
+	self:UnregisterEvent("MAIL_INBOX_UPDATE")
+	self:HideButton()
+end
+
+function Postal_CarbonCopy:ScheduleOpenMailUpdate()
+	if C_Timer then
+		C_Timer.After(0, function()
+			if Postal_CarbonCopy:IsEnabled() then Postal_CarbonCopy:OpenMail_Update() end
+		end)
+	else
+		self:OpenMail_Update()
 	end
 end
 
+function Postal_CarbonCopy:HideButton()
+	if self.button then self.button:Hide() end
+end
+
 function Postal_CarbonCopy:OpenMail_Update()
-	if not InboxFrame.openMailID then return end
-	local bodyText, _, _, isInvoice = GetInboxText(InboxFrame.openMailID)
+	local mailID = InboxFrame and InboxFrame.openMailID
+	if not mailID then self:HideButton(); return end
+	local bodyText, _, _, isInvoice = GetInboxText(mailID)
 
 	-- Show or hide the button as necessary
 	if isInvoice or (bodyText and #bodyText > 0) then
 		if self.CreateButton then
 			self:CreateButton()
 		end
-		self.button:Show()
+		if self.button then self.button:Show() end
 	else
-		if self.button then
-			self.button:Hide()
-		end
+		self:HideButton()
 	end
 end
 
@@ -95,6 +112,7 @@ function Postal_CarbonCopy:CopyMail()
 end
 
 function Postal_CarbonCopy:CreateButton()
+	if not OpenMailScrollFrame then return end
 	local button = CreateFrame("Button", nil, OpenMailScrollFrame)
 	button:SetPoint("TOPRIGHT", OpenMailScrollFrame, "TOPRIGHT", 0, 0)
 	button:SetHeight(10)

@@ -127,7 +127,8 @@ function Postal:OnInitialize()
 	-- WoW Forever/Camelot currently reports the mainline project ID but a
 	-- 1.60.x interface number, so detect it by interface and still use the
 	-- mainline API paths.
-	local interfaceVersion = tonumber(select(4, GetBuildInfo()))
+	local _, _, _, interfaceVersion = GetBuildInfo()
+	interfaceVersion = tonumber(interfaceVersion)
 	if _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CLASSIC then Postal.WOWClassic = true end
 	if _G.WOW_PROJECT_ID == _G.WOW_PROJECT_BURNING_CRUSADE_CLASSIC then Postal.WOWBCClassic = true end
 	if _G.WOW_PROJECT_ID == _G.WOW_PROJECT_WRATH_CLASSIC then Postal.WOWWotLKClassic = true end
@@ -612,6 +613,7 @@ end
 -- Disable Inbox Clicks
 local function noop() end
 function Postal:DisableInbox(disable)
+	if type(InboxFrame_OnClick) ~= "function" then return end
 	if disable then
 		if not self:IsHooked("InboxFrame_OnClick") then
 			self:RawHook("InboxFrame_OnClick", noop, true)

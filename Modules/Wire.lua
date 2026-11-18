@@ -21,12 +21,25 @@ s = gsub(s, "%%d", "%%d+")
 c = gsub(c, "%%d", "%%d+")
 
 function Postal_Wire:OnEnable()
+	self:RegisterEvent("MAIL_SHOW", "HookMoneyInput")
+	self:HookMoneyInput()
+end
+
+function Postal_Wire:HookMoneyInput()
 	-- Classic clients expose the callback as a frame method. Modern clients,
-	-- including WoW Forever, may expose it only as the frame's script.
-	if SendMailMoney and type(SendMailMoney.onValueChangedFunc) == "function" then
+	-- including WoW Forever, may expose it only as the frame's script, and
+	-- the frame may not exist until the mailbox is opened.
+	if not self._moneyHooked and type(MoneyInputFrame_OnValueChanged) == "function" then
+		self:SecureHook("MoneyInputFrame_OnValueChanged")
+		self._moneyHooked = true
+	end
+	if self._moneyFrameHooked or not SendMailMoney then return end
+	if type(SendMailMoney.onValueChangedFunc) == "function" then
 		self:SecureHook(SendMailMoney, "onValueChangedFunc")
-	elseif SendMailMoney and SendMailMoney.HasScript and SendMailMoney:HasScript("OnValueChanged") then
+		self._moneyFrameHooked = true
+	elseif SendMailMoney.HasScript and SendMailMoney:HasScript("OnValueChanged") then
 		self:HookScript(SendMailMoney, "OnValueChanged", "onValueChangedFunc")
+		self._moneyFrameHooked = true
 	end
 end
 

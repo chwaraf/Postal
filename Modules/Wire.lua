@@ -23,6 +23,40 @@ c = gsub(c, "%%d", "%%d+")
 function Postal_Wire:OnEnable()
 	self:RegisterEvent("MAIL_SHOW", "HookMoneyInput")
 	self:HookMoneyInput()
+	if type(SendMailFrame_Update) == "function" then
+		self:SecureHook("SendMailFrame_Update", "UpdateItemSubject")
+	end
+	if type(SendMailItem) == "function" then
+		self:SecureHook("SendMailItem", "UpdateItemSubject")
+	end
+	if type(ClickSendMailItemButton) == "function" then
+		self:SecureHook("ClickSendMailItemButton", "UpdateItemSubject")
+	end
+end
+
+function Postal_Wire:UpdateItemSubject()
+	if not SendMailSubjectEditBox or type(GetSendMailItem) ~= "function" then return end
+	local itemTitle
+	for i = 1, (ATTACHMENTS_MAX_SEND or 12) do
+		local itemName, _, stackCount = GetSendMailItem(i)
+		if itemName then
+			itemTitle = itemName
+			if stackCount and stackCount > 1 then
+				itemTitle = itemTitle .. " (" .. stackCount .. ")"
+			end
+			break
+		end
+	end
+	local subject = SendMailSubjectEditBox:GetText()
+	if itemTitle then
+		if subject == "" or subject == self.previousItem then
+			SendMailSubjectEditBox:SetText(itemTitle)
+			self.previousItem = itemTitle
+		end
+	elseif subject == self.previousItem then
+		SendMailSubjectEditBox:SetText("")
+		self.previousItem = ""
+	end
 end
 
 function Postal_Wire:HookMoneyInput()

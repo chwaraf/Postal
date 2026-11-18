@@ -27,18 +27,30 @@ end
 
 function Postal_Wire:HookMoneyInput()
 	-- Classic clients expose the callback as a frame method. Modern clients,
-	-- including WoW Forever, may expose it only as the frame's script, and
-	-- the frame may not exist until the mailbox is opened.
+	-- including WoW Forever, may update one of the child edit boxes instead.
 	if not self._moneyHooked and type(MoneyInputFrame_OnValueChanged) == "function" then
 		self:SecureHook("MoneyInputFrame_OnValueChanged")
 		self._moneyHooked = true
 	end
-	if self._moneyFrameHooked or not SendMailMoney then return end
-	if type(SendMailMoney.onValueChangedFunc) == "function" then
+	if not SendMailMoney then return end
+	local function hookFrame(frame)
+		if not frame or not frame.HasScript then return end
+		if frame.HasScript(frame, "OnValueChanged") then
+			self:HookScript(frame, "OnValueChanged", "onValueChangedFunc")
+		end
+		if frame.HasScript(frame, "OnTextChanged") then
+			self:HookScript(frame, "OnTextChanged", "onValueChangedFunc")
+		end
+		if frame.GetChildren then
+			for _, child in ipairs({frame:GetChildren()}) do hookFrame(child) end
+		end
+	end
+	if not self._moneyFrameHooked and type(SendMailMoney.onValueChangedFunc) == "function" then
 		self:SecureHook(SendMailMoney, "onValueChangedFunc")
 		self._moneyFrameHooked = true
-	elseif SendMailMoney.HasScript and SendMailMoney:HasScript("OnValueChanged") then
-		self:HookScript(SendMailMoney, "OnValueChanged", "onValueChangedFunc")
+	end
+	if not self._moneyFrameHooked then
+		hookFrame(SendMailMoney)
 		self._moneyFrameHooked = true
 	end
 end

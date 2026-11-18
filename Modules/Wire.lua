@@ -21,8 +21,13 @@ s = gsub(s, "%%d", "%%d+")
 c = gsub(c, "%%d", "%%d+")
 
 function Postal_Wire:OnEnable()
-	-- Secure hook so that it calls the original function
-	self:SecureHook(SendMailMoney, "onValueChangedFunc")
+	-- Classic clients expose the callback as a frame method. Modern clients,
+	-- including WoW Forever, may expose it only as the frame's script.
+	if SendMailMoney and type(SendMailMoney.onValueChangedFunc) == "function" then
+		self:SecureHook(SendMailMoney, "onValueChangedFunc")
+	elseif SendMailMoney and SendMailMoney.HasScript and SendMailMoney:HasScript("OnValueChanged") then
+		self:HookScript(SendMailMoney, "OnValueChanged", "onValueChangedFunc")
+	end
 end
 
 -- Disabling modules unregisters all events/hook automatically
@@ -30,6 +35,7 @@ end
 --end
 
 function Postal_Wire:onValueChangedFunc()
+	if not SendMailSubjectEditBox or not SendMailMoney then return end
 	local subject = SendMailSubjectEditBox:GetText()
 	if subject == "" or subject:find(g) or subject:find(s) or subject:find(c) then
 		local money = MoneyInputFrame_GetCopper(SendMailMoney)

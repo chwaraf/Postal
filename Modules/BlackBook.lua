@@ -291,6 +291,19 @@ function Postal_BlackBook:AddAlt()
 	altAdded = true -- Only record this character once per session
 end
 
+function Postal_BlackBook.ClearAlts()
+	local db = Postal.db.global.BlackBook.alts
+	local realm = GetRealmName()
+	local faction = UnitFactionGroup("player")
+	for i = #db, 1, -1 do
+		local p, r, f = strsplit("|", db[i])
+		if r == realm and f == faction and not Postal_BlackBook_IsCurrentPlayerName(p, r, f) then
+			tremove(db, i)
+		end
+	end
+	Postal_BlackBook:MAIL_SHOW()
+end
+
 function Postal_BlackBook.DeleteAlt(dropdownbutton, arg1, arg2, checked)
 	local realm = GetRealmName()
 	local faction = UnitFactionGroup("player")
@@ -778,6 +791,12 @@ function Postal_BlackBook.BlackBookMenu(self, level)
 				info.keepShownOnClick = 1
 				info.func = self.UncheckHack
 				info.value = "deletealt"
+				UIDropDownMenu_AddButton(info, level)
+
+				info.hasArrow = nil
+				info.keepShownOnClick = nil
+				info.func = Postal_BlackBook.ClearAlts
+				info.text = L["Clear list"]
 				UIDropDownMenu_AddButton(info, level)
 			-- More than 25 people, split the list into multiple sublists of 25
 			elseif numAltsOnList > 25 then

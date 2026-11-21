@@ -126,6 +126,7 @@ local function Postal_BlackBook_NormalizeSavedNames(entries)
 		local name, realm, faction, level, class = strsplit("|", entries[i])
 		local cleanName = Postal_BlackBook_CleanRealmSuffix(name)
 		if name and realm then
+			if Postal_BlackBook_IsCurrentRealm(realm) and GetRealmName then realm = GetRealmName() end
 			local suffix = "%-" .. Postal_BlackBook_EscapePattern(realm) .. "$"
 			cleanName = cleanName:gsub("%s*" .. suffix, "")
 			local key = cleanName .. "|" .. realm .. "|" .. (faction or "")
@@ -133,7 +134,7 @@ local function Postal_BlackBook_NormalizeSavedNames(entries)
 				tremove(entries, i)
 			else
 				seen[key] = true
-				if cleanName ~= name then
+				if cleanName ~= name or realm ~= select(2, strsplit("|", entries[i])) then
 					entries[i] = table.concat({cleanName, realm, faction, level, class}, "|")
 				end
 			end
@@ -918,9 +919,9 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 				local p, r, f, l, c = strsplit("|", db[i])
 				if (not Postal_BlackBook_IsCurrentPlayerName(p, r, f)) or all then
 					if all then
-						p = all and p.."-"..r.."-"..f or p
+						p = Postal_BlackBook_FormatMailName(p, r)
 					else
-						p = all and p.."-"..r or p
+						p = Postal_BlackBook_FormatMailName(p, r)
 					end
 					if l and c then
 						local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
@@ -941,7 +942,7 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 			for i = startIndex, endIndex do
 				local name = sorttable[i]
 				local p, r, f, l, c = strsplit("|", db[i])
-					p = all and p.."-"..r or p
+					p = Postal_BlackBook_FormatMailName(p, r)
 					if l and c then
 						local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
 						info.text = format("%s |cff%.2x%.2x%.2x(%d %s)|r", p, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
@@ -964,7 +965,7 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 			for i = startIndex, endIndex do
 				local p, r, f, l, c = strsplit("|", db[i])
 				if (not Postal_BlackBook_IsCurrentPlayerName(p, r, f)) or all then
-					p = all and p.."-"..r.."-"..f or p
+					p = Postal_BlackBook_FormatMailName(p, r)
 					if l and c then
 						local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
 						info.text = format("%s |cff%.2x%.2x%.2x(%d %s)|r", p, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])

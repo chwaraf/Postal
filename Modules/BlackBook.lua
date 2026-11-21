@@ -291,18 +291,36 @@ function Postal_BlackBook:AddAlt()
 	altAdded = true -- Only record this character once per session
 end
 
-function Postal_BlackBook.ClearAlts()
+local function Postal_BlackBook_ClearAltsNow(all)
 	local db = Postal.db.global.BlackBook.alts
 	local realm = GetRealmName()
 	local faction = UnitFactionGroup("player")
 	for i = #db, 1, -1 do
 		local p, r, f = strsplit("|", db[i])
-		if r == realm and f == faction and not Postal_BlackBook_IsCurrentPlayerName(p, r, f) then
+		if (all or (r == realm and f == faction)) and not Postal_BlackBook_IsCurrentPlayerName(p, r, f) then
 			tremove(db, i)
 		end
 	end
 	Postal_BlackBook:MAIL_SHOW()
 end
+
+function Postal_BlackBook.ClearAlts()
+	StaticPopup_Show("POSTAL_CLEAR_ALTS", nil, nil, false)
+end
+
+function Postal_BlackBook.ClearAllAlts()
+	StaticPopup_Show("POSTAL_CLEAR_ALTS", nil, nil, true)
+end
+
+StaticPopupDialogs["POSTAL_CLEAR_ALTS"] = {
+	text = L["Are you sure you want to clear this list?"] or "Are you sure you want to clear this list?",
+	button1 = YES,
+	button2 = NO,
+	hideOnEscape = true,
+	timeout = 0,
+	 OnAccept = function(self, data) Postal_BlackBook_ClearAltsNow(data) end,
+}
+
 
 function Postal_BlackBook.DeleteAlt(dropdownbutton, arg1, arg2, checked)
 	local realm = GetRealmName()
@@ -850,6 +868,12 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 				info.keepShownOnClick = 1
 				info.func = self.UncheckHack
 				info.value = "deleteallalt"
+				UIDropDownMenu_AddButton(info, level)
+
+				info.hasArrow = nil
+				info.keepShownOnClick = nil
+				info.func = Postal_BlackBook.ClearAllAlts
+				info.text = L["Clear list"]
 				UIDropDownMenu_AddButton(info, level)
 			-- More than 25 people, split the list into multiple sublists of 25
 			elseif #db > 25 then

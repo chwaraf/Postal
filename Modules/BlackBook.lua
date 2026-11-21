@@ -100,7 +100,20 @@ local function Postal_BlackBook_IsCurrentPlayerName(name, realm, faction)
 	return name == player or (givenName and name == givenName)
 end
 
+local function Postal_BlackBook_CleanRealmSuffix(name)
+	if not Postal_BlackBook_IsUsableString(name) then return name end
+	local realms = { GetRealmName and GetRealmName(), GetNormalizedRealmName and GetNormalizedRealmName() }
+	for i = 1, #realms do
+		local realm = realms[i]
+		if Postal_BlackBook_IsUsableString(realm) then
+			name = name:gsub("%s*%-%s*" .. Postal_BlackBook_EscapePattern(realm) .. "$", "")
+		end
+	end
+	return name
+end
+
 local function Postal_BlackBook_FormatMailName(name, realm)
+	name = Postal_BlackBook_CleanRealmSuffix(name)
 	if realm and not Postal_BlackBook_IsCurrentRealm(realm) then
 		return name .. "-" .. realm
 	end
@@ -108,13 +121,21 @@ local function Postal_BlackBook_FormatMailName(name, realm)
 end
 
 local function Postal_BlackBook_NormalizeSavedNames(entries)
-	for i = 1, #entries do
+	local seen = {}
+	for i = #entries, 1, -1 do
 		local name, realm, faction, level, class = strsplit("|", entries[i])
+		local cleanName = Postal_BlackBook_CleanRealmSuffix(name)
 		if name and realm then
 			local suffix = "%-" .. Postal_BlackBook_EscapePattern(realm) .. "$"
-			local cleanName = name:gsub("%s*" .. suffix, "")
-			if cleanName ~= name then
-				entries[i] = table.concat({cleanName, realm, faction, level, class}, "|")
+			cleanName = cleanName:gsub("%s*" .. suffix, "")
+			local key = cleanName .. "|" .. realm .. "|" .. (faction or "")
+			if seen[key] then
+				tremove(entries, i)
+			else
+				seen[key] = true
+				if cleanName ~= name then
+					entries[i] = table.concat({cleanName, realm, faction, level, class}, "|")
+				end
 			end
 		end
 	end

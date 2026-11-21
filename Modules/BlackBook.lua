@@ -775,14 +775,15 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 				for i = 1, #db do
 					local p, r, f, l, c = strsplit("|", db[i])
 					if not Postal_BlackBook_IsCurrentPlayerName(p, r, f) then
+						p = Postal_BlackBook_FormatMailName(p, r)
 						if l and c then
 							local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
-							info.text = format("%s-%s-%s |cff%.2x%.2x%.2x(%d %s)|r", p, r, f, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
+							info.text = format("%s |cff%.2x%.2x%.2x(%d %s)|r", p, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
 						else
-							info.text = ("%s-%s-%s"):format(p, r, f)
+							info.text = p
 						end
 						info.func = Postal_BlackBook.SetSendMailName
-						info.arg1 = ("%s-%s"):format(p, r)
+						info.arg1 = p
 						UIDropDownMenu_AddButton(info, level)
 					end
 				end
@@ -988,12 +989,12 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 				if not Postal_BlackBook_IsCurrentPlayerName(p, r, f) then
 					if l and c then
 						local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
-						info.text = format("%s-%s-%s |cff%.2x%.2x%.2x(%d %s)|r", p, r, f, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
+						info.text = format("%s |cff%.2x%.2x%.2x(%d %s)|r", p, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
 					else
-						info.text = ("%s-%s-%s"):format(p, r, f)
+						info.text = p
 					end
 					info.func = Postal_BlackBook.SetSendMailName
-					info.arg1 = ("%s-%s"):format(p, r)
+					info.arg1 = p
 					UIDropDownMenu_AddButton(info, level)
 				end
 			end

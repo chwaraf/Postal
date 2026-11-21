@@ -881,6 +881,11 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 					UIDropDownMenu_AddButton(info, level)
 				end
 			end
+			info.hasArrow = nil
+			info.keepShownOnClick = nil
+			info.func = Postal_BlackBook.ClearAllAlts
+			info.text = L["Clear list"]
+			UIDropDownMenu_AddButton(info, level)
 			-- ensure long lists stay on screen
 			if DropDownList2 then DropDownList2:SetClampedToScreen(true) end
 			if DropDownList3 then DropDownList3:SetClampedToScreen(true) end

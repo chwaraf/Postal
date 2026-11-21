@@ -272,12 +272,14 @@ function Postal_BlackBook:AddAlt()
 	local db = Postal.db.global.BlackBook.alts
 	enableAltsMenu = false
 	enableAllAltsMenu = false
+	local playerGivenName = Postal_BlackBook_GetPlayerGivenName()
 	for i = #db, 1, -1 do
 		local p, r, f, l, c = strsplit("|", db[i])
+		local cleanName = Postal_BlackBook_CleanRealmSuffix(p)
 		local isCurrent = Postal_BlackBook_IsCurrentPlayerName(p, r, f)
-		if Postal_BlackBook_IsCurrentRealm(r) and f == faction then
-			local cleanName = Postal_BlackBook_CleanRealmSuffix(p)
-			isCurrent = isCurrent or cleanName == player or cleanName == Postal_BlackBook_GetPlayerGivenName()
+		if f == faction and (Postal_BlackBook_IsCurrentRealm(r) or r == realm) then
+			isCurrent = isCurrent or strlower(cleanName or "") == strlower(player or "")
+			isCurrent = isCurrent or strlower(cleanName or "") == strlower(playerGivenName or "")
 		end
 		if isCurrent then
 			tremove(db, i)

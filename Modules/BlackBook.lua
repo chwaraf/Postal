@@ -723,7 +723,7 @@ function Postal_BlackBook.BlackBookMenu(self, level)
 		info.value = "alt"
 		UIDropDownMenu_AddButton(info, level)
 
-		info.disabled = not enableAllAltsMenu
+		info.disabled = nil
 		info.text = L["All Alts"]
 		info.value = "allalt"
 		UIDropDownMenu_AddButton(info, level)
@@ -810,12 +810,7 @@ function Postal_BlackBook.BlackBookMenu(self, level)
 				info.value = "deletealt"
 				UIDropDownMenu_AddButton(info, level)
 
-				info.hasArrow = nil
-				info.keepShownOnClick = nil
-				info.func = Postal_BlackBook.ClearAlts
-				info.text = L["Clear list"]
-				UIDropDownMenu_AddButton(info, level)
-			-- More than 25 people, split the list into multiple sublists of 25
+				-- More than 25 people, split the list into multiple sublists of 25
 			elseif numAltsOnList > 25 then
 				info.hasArrow = 1
 				info.keepShownOnClick = 1
@@ -837,8 +832,7 @@ function Postal_BlackBook.BlackBookMenu(self, level)
 			if DropDownList4 then DropDownList4:SetClampedToScreen(true) end
 
 elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
-			if not enableAllAltsMenu then return end
-			local db = Postal.db.global.BlackBook.alts
+				local db = Postal.db.global.BlackBook.alts
 			local realm = GetRealmName()
 			local faction = UnitFactionGroup("player")
 			local player = Postal_BlackBook_GetPlayerName()

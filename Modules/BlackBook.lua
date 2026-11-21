@@ -718,7 +718,7 @@ function Postal_BlackBook.BlackBookMenu(self, level)
 		info.value = "recent"
 		UIDropDownMenu_AddButton(info, level)
 
-		info.disabled = not enableAltsMenu
+		info.disabled = nil
 		info.text = L["Alts"]
 		info.value = "alt"
 		UIDropDownMenu_AddButton(info, level)
@@ -779,7 +779,6 @@ function Postal_BlackBook.BlackBookMenu(self, level)
 			UIDropDownMenu_AddButton(info, level)
 
 		elseif UIDROPDOWNMENU_MENU_VALUE == "alt" then
-			if not enableAltsMenu then return end
 			local db = altstable
 			info.notCheckable = 1
 			-- 25 or less, don't need multi level menus
@@ -827,6 +826,11 @@ function Postal_BlackBook.BlackBookMenu(self, level)
 					UIDropDownMenu_AddButton(info, level)
 				end
 			end
+			info.hasArrow = nil
+			info.keepShownOnClick = nil
+			info.func = Postal_BlackBook.ClearAlts
+			info.text = L["Clear list"]
+			UIDropDownMenu_AddButton(info, level)
 			-- ensure long lists stay on screen
 			if DropDownList2 then DropDownList2:SetClampedToScreen(true) end
 			if DropDownList3 then DropDownList3:SetClampedToScreen(true) end

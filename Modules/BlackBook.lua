@@ -89,6 +89,14 @@ local function Postal_BlackBook_IsCurrentPlayerName(name, realm, faction)
 	return name == player or (givenName and name == givenName)
 end
 
+local function Postal_BlackBook_FormatMailName(name, realm)
+	local currentRealm = GetRealmName()
+	if realm and currentRealm and realm ~= currentRealm then
+		return name .. "-" .. realm
+	end
+	return name
+end
+
 -- WoW 10.0 Release Show/Hide Frame Handlers
 function Postal_BlackBook:PLAYER_INTERACTION_MANAGER_FRAME_SHOW(eventName, ...)
 	local paneType = ...
@@ -356,7 +364,7 @@ function Postal_BlackBook:OnChar(editbox, ...)
 			local p, r, f = strsplit("|", db[i])
 			if not Postal_BlackBook_IsCurrentPlayerName(p, r) then
 				if strfind(strupper(p.."-"..r):gsub("%s*",""), nosptext, 1, 1) == 1 then
-					newname = p.."-"..r
+					newname = Postal_BlackBook_FormatMailName(p, r)
 					break
 				end
 			end

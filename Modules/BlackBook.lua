@@ -97,6 +97,19 @@ local function Postal_BlackBook_FormatMailName(name, realm)
 	return name
 end
 
+local function Postal_BlackBook_NormalizeSavedNames(entries)
+	for i = 1, #entries do
+		local name, realm, faction, level, class = strsplit("|", entries[i])
+		if name and realm then
+			local suffix = "%-" .. Postal_BlackBook_EscapePattern(realm) .. "$"
+			local cleanName = name:gsub("%s*" .. suffix, "")
+			if cleanName ~= name then
+				entries[i] = table.concat({cleanName, realm, faction, level, class}, "|")
+			end
+		end
+	end
+end
+
 -- WoW 10.0 Release Show/Hide Frame Handlers
 function Postal_BlackBook:PLAYER_INTERACTION_MANAGER_FRAME_SHOW(eventName, ...)
 	local paneType = ...
@@ -130,6 +143,8 @@ function Postal_BlackBook:OnEnable()
 	end
 
 	local db = Postal.db.profile.BlackBook
+	Postal_BlackBook_NormalizeSavedNames(Postal.db.global.BlackBook.alts)
+	Postal_BlackBook_NormalizeSavedNames(db.recent)
 
 	SendMailNameEditBox:SetHistoryLines(15)
 	if type(SendMailFrame_Reset) == "function" then

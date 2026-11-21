@@ -78,20 +78,30 @@ local function Postal_BlackBook_GetPlayerGivenName()
 	return Postal_BlackBook_GetPlayerName()
 end
 
+local function Postal_BlackBook_IsCurrentRealm(realm)
+	if not Postal_BlackBook_IsUsableString(realm) then return false end
+	local names = { GetRealmName and GetRealmName(), GetNormalizedRealmName and GetNormalizedRealmName() }
+	for i = 1, #names do
+		local currentRealm = names[i]
+		if Postal_BlackBook_IsUsableString(currentRealm) and (realm == currentRealm or strfind(realm, currentRealm, 1, true) or strfind(currentRealm, realm, 1, true)) then
+			return true
+		end
+	end
+	return false
+end
+
 local function Postal_BlackBook_IsCurrentPlayerName(name, realm, faction)
 	if not Postal_BlackBook_IsUsableString(name) then return false end
 	local player = Postal_BlackBook_GetPlayerName()
 	local givenName = Postal_BlackBook_GetPlayerGivenName()
-	local currentRealm = GetRealmName()
 	local currentFaction = UnitFactionGroup("player")
-	if realm and currentRealm and realm ~= currentRealm then return false end
+	if realm and not Postal_BlackBook_IsCurrentRealm(realm) then return false end
 	if faction and currentFaction and faction ~= currentFaction then return false end
 	return name == player or (givenName and name == givenName)
 end
 
 local function Postal_BlackBook_FormatMailName(name, realm)
-	local currentRealm = GetRealmName()
-	if realm and currentRealm and realm ~= currentRealm then
+	if realm and not Postal_BlackBook_IsCurrentRealm(realm) then
 		return name .. "-" .. realm
 	end
 	return name

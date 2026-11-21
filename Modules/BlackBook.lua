@@ -870,12 +870,7 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 				info.value = "deleteallalt"
 				UIDropDownMenu_AddButton(info, level)
 
-				info.hasArrow = nil
-				info.keepShownOnClick = nil
-				info.func = Postal_BlackBook.ClearAllAlts
-				info.text = L["Clear list"]
-				UIDropDownMenu_AddButton(info, level)
-			-- More than 25 people, split the list into multiple sublists of 25
+				-- More than 25 people, split the list into multiple sublists of 25
 			elseif #db > 25 then
 				info.hasArrow = 1
 				info.keepShownOnClick = 1

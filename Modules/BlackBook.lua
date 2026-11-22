@@ -319,7 +319,7 @@ function Postal_BlackBook.ClearAllAlts()
 end
 
 StaticPopupDialogs["POSTAL_CLEAR_ALTS"] = {
-	text = L["Are you sure you want to clear this list?"] or "Are you sure you want to clear this list?",
+	text = "Are you sure you want to clear this list?", 
 	button1 = YES,
 	button2 = NO,
 	hideOnEscape = true,
